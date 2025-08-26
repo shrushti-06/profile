@@ -1,32 +1,61 @@
 pipeline {
     agent any
 
+    environment {
+        GH_REPO = 'https://github.com/shrushti-06/profile.git'
+        GH_BRANCH = 'gh-pages'
+        GITHUB_TOKEN = credentials('github-token') // Your Jenkins credential ID
+    }
+
     stages {
-        // stage('Verify Docker Installation') {
-        //     steps {
-        //        // script {
-        //             sh 'docker --version'  // Ensure Docker is available
-        //             sh 'docker ps'  // List running containers
-        //         //}
-        //     }
-        // }
-
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/shrushti-06/profile--card.git'
+                echo 'Pulling latest code from SCM...'
+                checkout scm
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build') {
             steps {
-                sh 'docker build -t portfolio-website .'
+                echo 'Static site - no build required'
             }
         }
 
-        stage('Run Container') {
+        stage('Test') {
             steps {
-                sh 'docker run -d -p 8090:80 portfolio-website'
+                echo 'Optional: run HTML/CSS linter'
             }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying static site to GitHub Pages'
+
+                // Configure Git user
+                sh 'git config --global user.email "jenkins@example.com"'
+                sh 'git config --global user.name "Jenkins"'
+
+                // Switch to gh-pages branch (create if needed)
+                sh 'git checkout -B gh-pages'
+
+                // Add all files
+                sh 'git add .'
+
+                // Commit changes (ignore if nothing changed)
+                sh 'git commit -m "Automated deploy from Jenkins" || echo "No changes to commit"'
+
+                // Push using GitHub token
+                sh "git push -f https://${GITHUB_TOKEN}@github.com/shrushti-06/profile.git gh-pages"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Pipeline completed successfully! Site deployed to GitHub Pages.'
+        }
+        failure {
+            echo '❌ Pipeline failed!'
         }
     }
 }
